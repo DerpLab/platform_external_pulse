@@ -57,6 +57,7 @@ import android.view.View;
 import android.view.animation.Animation;
 import android.widget.FrameLayout;
 
+import com.android.internal.util.aosip.aosipUtils;
 import com.android.systemui.Dependency;
 import com.android.systemui.SysUiServiceProvider;
 import com.android.systemui.statusbar.CommandQueue;
@@ -184,11 +185,19 @@ public class PulseControllerImpl
             mContext.getContentResolver().registerContentObserver(
                     Settings.System.getUriFor(Settings.System.PULSE_RENDER_STYLE_URI), false, this,
                     UserHandle.USER_ALL);
+            mContext.getContentResolver().registerContentObserver(
+                    Settings.System.getUriFor(Settings.System.GESTURE_PILL_TOGGLE), false, this,
+                    UserHandle.USER_ALL);
+            mContext.getContentResolver().registerContentObserver(
+                    Settings.System.getUriFor(Settings.System.FORCE_SHOW_NAVBAR), false, this,
+                    UserHandle.USER_ALL);
         }
 
         @Override
         public void onChange(boolean selfChange, Uri uri) {
-            if (uri.equals(Settings.System.getUriFor(Settings.System.PULSE_ENABLED))) {
+            if (uri.equals(Settings.System.getUriFor(Settings.System.PULSE_ENABLED))
+                    || uri.equals(Settings.System.getUriFor(Settings.System.GESTURE_PILL_TOGGLE))
+                    || uri.equals(Settings.System.getUriFor(Settings.System.FORCE_SHOW_NAVBAR))) {
                 updateEnabled();
                 doLinkage();
             } else if (uri.equals(Settings.System.getUriFor(Settings.System.PULSE_RENDER_STYLE_URI))) {
@@ -203,8 +212,14 @@ public class PulseControllerImpl
         }
 
         void updateEnabled() {
+            boolean navBarHidden = Settings.System.getInt(mContext.getContentResolver(),
+                    Settings.System.FORCE_SHOW_NAVBAR, 1) == 0 ||
+                    (aosipUtils.isGesturalNav(mContext) &&
+                    Settings.System.getInt(mContext.getContentResolver(),
+                    Settings.System.GESTURE_PILL_TOGGLE, 0) == 1);
             mPulseEnabled = Settings.System.getIntForUser(mContext.getContentResolver(),
-                    Settings.System.PULSE_ENABLED, 0, UserHandle.USER_CURRENT) == 1;
+                    Settings.System.PULSE_ENABLED, 0, UserHandle.USER_CURRENT) == 1
+                    && !navBarHidden;
         }
 
         void updateRenderMode() {
